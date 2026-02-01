@@ -1,7 +1,7 @@
 "use client";
 
 import { Tldraw, useEditor } from "tldraw";
-import "@tldraw/tldraw/tldraw.css";
+import "tldraw/tldraw.css";
 import { exportCanvasToBase64 } from "@/lib/exportCanvas";
 import { useBoardStore } from "@/store/useBoardStore";
 
@@ -11,29 +11,44 @@ function BoardContent() {
   const setStatus = useBoardStore((s) => s.setStatus);
 
   const handleExport = async () => {
+    console.log("Export button clicked");
+
     if (!editor) return;
 
     setStatus("exporting");
     const image = await exportCanvasToBase64(editor);
+
+    // console.log("Export result:", image);
+
     setCanvasImage(image);
     setStatus("idle");
 
-    console.log("Canvas exported");
+    // console.log("Canvas exported");
   };
 
   return (
     <>
       <button
         onClick={handleExport}
-        className="absolute top-4 right-4 z-50 bg-black text-white px-4 py-2 rounded"
+        style={{
+          position: "fixed",
+          top: 60,
+          left: 20,
+          zIndex: 9999,
+          background: "red",
+          color: "white",
+          padding: "12px",
+        }}
       >
-        Export
+        EXPORT TEST
       </button>
     </>
   );
 }
 
 export default function Whiteboard() {
+  console.log("BoardContent mounted");
+
   return (
     <div className="relative h-full w-full">
       <Tldraw>
