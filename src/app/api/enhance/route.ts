@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Step 1: Send drawing + prompt to Gemini vision
     // Ask it to generate a detailed image generation prompt
     const geminiResponse = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite",
       contents: [
         {
           role: "user",
