@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "nvidia/nemotron-3.5-content-safety:free",
+          model: "meta-llama/llama-4-maverick:free",
           messages: [
             {
               role: "user",
