@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,42 +11,60 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Strip the base64 prefix before sending to Gemini
     const base64Image = image.replace(/^data:image\/png;base64,/, "");
 
-    // Step 1: Send drawing + prompt to Gemini vision
-    // Ask it to generate a detailed image generation prompt
-    const geminiResponse = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
-      contents: [
-        {
-          role: "user",
-          parts: [
+    // Step 1: Send drawing + prompt to Gemini vision via OpenRouter
+    // Goal: get a detailed image generation prompt back
+    const geminiResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-exp:free",
+          messages: [
             {
-              inlineData: {
-                mimeType: "image/png",
-                data: base64Image,
-              },
-            },
-            {
-              text: `The user drew this sketch and wants: "${prompt}".
-              Based on the drawing and their intent, write a single detailed 
-              image generation prompt (max 200 words). Only return the prompt, 
-              nothing else.`,
+              role: "user",
+              content: [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/png;base64,${base64Image}`,
+                  },
+                },
+                {
+                  type: "text",
+                  text: `The user drew this sketch and wants: "${prompt}".
+                Based on the drawing and their intent, write a single detailed 
+                image generation prompt (max 200 words). Only return the prompt, 
+                nothing else.`,
+                },
+              ],
             },
           ],
-        },
-      ],
-    });
+        }),
+      },
+    );
 
-    const imageGenPrompt = geminiResponse.text ?? prompt;
-    console.log("Generated prompt:", imageGenPrompt);
+    const geminiData = await geminiResponse.json();
+    console.log("OpenRouter response:", geminiData);
 
-    // Step 2: Send that prompt to Pollinations (free, no API key needed)
+    if (!geminiResponse.ok) {
+      console.error("OpenRouter error:", geminiData);
+      return NextResponse.json({ error: geminiData }, { status: 500 });
+    }
+
+    const imageGenPrompt = geminiData.choices[0].message.content ?? prompt;
+    console.log("Generated image prompt:", imageGenPrompt);
+
+    // Step 2: Send that prompt to Pollinations (free, no key needed)
     const encodedPrompt = encodeURIComponent(imageGenPrompt);
     const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
 
-    // Fetch the image and convert to base64 to send back to frontend
+    // Fetch image and convert to base64
     const imageResponse = await fetch(pollinationsUrl);
     const imageBuffer = await imageResponse.arrayBuffer();
     const imageBase64 = Buffer.from(imageBuffer).toString("base64");
