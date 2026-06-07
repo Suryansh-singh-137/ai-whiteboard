@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-exp:free",
+          model: "nvidia/nemotron-3-ultra-550b-a55b:free",
           messages: [
             {
               role: "user",
