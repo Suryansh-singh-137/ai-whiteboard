@@ -1,18 +1,79 @@
 "use client";
 import { useBoardStore } from "@/store/useBoardStore";
 import { Button } from "../ui/button";
+import { AssetRecordType, createShapeId } from "tldraw";
+
 export default function PreviewOverlay() {
   const aiImage = useBoardStore((s) => s.aiImage);
   const status = useBoardStore((s) => s.status);
   const setStatus = useBoardStore((s) => s.setStatus);
   const setAIImage = useBoardStore((s) => s.setAIImage);
+  const editor = useBoardStore((s) => s.editor);
   if (status !== "preview" || !aiImage) return null;
   const handleReject = () => {
     setAIImage(null);
     setStatus("idle");
   };
   const handleAccept = () => {
-    setStatus("idle");
+    if (!editor || !aiImage) return;
+
+    // 1Delete existing shapes
+    const ids = Array.from(editor.getCurrentPageShapeIds());
+    if (ids.length) editor.deleteShapes(ids);
+
+    // 2Create data URL
+    const dataUrl = aiImage.startsWith("data:")
+      ? aiImage
+      : `data:image/png;base64,${aiImage}`;
+
+    const img = new Image();
+    img.src = dataUrl;
+
+    img.onload = () => {
+      const width = img.width || 800;
+      const height = img.height || 600;
+
+      const assetId = AssetRecordType.createId();
+      const shapeId = createShapeId();
+
+      //  Register asset properly
+      editor.createAssets([
+        {
+          id: assetId,
+          type: "image",
+          typeName: "asset",
+          props: {
+            name: "enhanced.png",
+            src: dataUrl,
+            w: width,
+            h: height,
+            mimeType: "image/png",
+            isAnimated: false,
+          },
+          meta: {},
+        },
+      ]);
+
+      //  Create shape referencing asset
+      editor.createShape({
+        id: shapeId,
+        type: "image",
+        x: 0,
+        y: 0,
+        props: {
+          assetId,
+          w: width,
+          h: height,
+        },
+      });
+
+      setAIImage(null);
+      setStatus("idle");
+    };
+
+    img.onerror = () => {
+      console.error("Image failed to load");
+    };
   };
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70">

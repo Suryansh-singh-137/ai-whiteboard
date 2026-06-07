@@ -4,12 +4,18 @@ import { Tldraw, useEditor } from "tldraw";
 import "tldraw/tldraw.css";
 import { exportCanvasToBase64 } from "@/lib/exportCanvas";
 import { useBoardStore } from "@/store/useBoardStore";
+import { useEffect } from "react";
 
 function BoardContent() {
   const editor = useEditor();
   const setCanvasImage = useBoardStore((s) => s.setCanvasImage);
   const setStatus = useBoardStore((s) => s.setStatus);
-
+  const setEditor = useBoardStore((s) => s.setEditor);
+  useEffect(() => {
+    if (editor) {
+      setEditor(editor);
+    }
+  }, [editor, setEditor]);
   const handleExport = async () => {
     console.log("Export button clicked");
 
