@@ -9,6 +9,7 @@ export default function PreviewOverlay() {
   const setStatus = useBoardStore((s) => s.setStatus);
   const setAIImage = useBoardStore((s) => s.setAIImage);
   const editor = useBoardStore((s) => s.editor);
+  console.log("STATUS:", status, "| AI IMAGE:", aiImage?.substring(0, 80));
   if (status !== "preview" || !aiImage) return null;
   const handleReject = () => {
     setAIImage(null);
