@@ -24,23 +24,22 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-4-maverick:free",
+          model: "google/gemma-4-31b-it:free",
           messages: [
             {
               role: "user",
               content: [
                 {
+                  type: "text",
+                  text: `The user drew this sketch and wants: "${prompt}". 
+    Based on the drawing and their intent, write a single detailed 
+    image generation prompt (max 200 words). Only return the prompt, nothing else.`,
+                },
+                {
                   type: "image_url",
                   image_url: {
                     url: `data:image/png;base64,${base64Image}`,
                   },
-                },
-                {
-                  type: "text",
-                  text: `The user drew this sketch and wants: "${prompt}".
-                Based on the drawing and their intent, write a single detailed 
-                image generation prompt (max 200 words). Only return the prompt, 
-                nothing else.`,
                 },
               ],
             },
