@@ -73,7 +73,9 @@ export default function PreviewOverlay() {
     };
 
     img.onerror = () => {
-      console.error("Image failed to load");
+      console.error("Image failed to load. Data URL:", dataUrl?.substring(0, 100));
+      setStatus("idle");
+      alert("Failed to load the enhanced image. Please try again.");
     };
   };
   console.log("aiImage value:", aiImage?.substring(0, 80));
