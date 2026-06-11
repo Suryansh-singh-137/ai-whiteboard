@@ -2,33 +2,50 @@
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useBoardStore } from "@/store/useBoardStore";
+import { exportCanvasToBase64 } from "@/lib/exportCanvas";
 import { log } from "console";
 export async function enhanceImage() {
   console.log("Enhance button clicked");
-  const { prompt, canvasImage } = useBoardStore.getState();
+  const { prompt, editor } = useBoardStore.getState();
+
+  if (!editor) {
+    alert("Canvas not ready.");
+    return;
+  }
+
+  if (!prompt.trim()) {
+    alert("Please enter a prompt.");
+    return;
+  }
 
   try {
+    useBoardStore.getState().setStatus("loading");
+
+    // Export canvas to base64 RIGHT HERE before calling API
+    const canvasImage = await exportCanvasToBase64(editor);
+    console.log("Canvas exported:", canvasImage?.substring(0, 50));
+
     if (!canvasImage) {
-      alert("Please export the canvas first.");
+      alert("Failed to export canvas. Draw something first.");
+      useBoardStore.getState().setStatus("idle");
       return;
     }
 
-    useBoardStore.getState().setStatus("loading");
     const res = await fetch("/api/enhance", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        image: canvasImage,
-        prompt,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: canvasImage, prompt }),
     });
+
     const data = await res.json();
+    console.log("API response:", data);
+
     useBoardStore.getState().setAIImage(data.enhancedImage);
     useBoardStore.getState().setStatus("preview");
   } catch (error) {
+    console.error("Enhance error:", error);
     alert("Failed to enhance image. Please try again.");
+    useBoardStore.getState().setStatus("idle");
   }
 }
 export default function PromptInput() {
