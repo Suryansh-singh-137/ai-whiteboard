@@ -75,11 +75,16 @@ export default function PreviewOverlay() {
       console.error("Image failed to load");
     };
   };
+  console.log("aiImage value:", aiImage?.substring(0, 80));
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70">
       <div className="flex max-w-4xl flex-col gap-4 rounded-lg bg-white p-6 shadow-lg">
         <img
-          src={aiImage}
+          src={
+            aiImage.startsWith("data:")
+              ? aiImage
+              : `data:image/png;base64,${aiImage}`
+          }
           alt="Enhanced Preview"
           className="max-h-[70vh] rounded border"
         />

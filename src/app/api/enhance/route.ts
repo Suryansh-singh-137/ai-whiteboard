@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error:", error);
+    console.log("Base64 preview:", imageBase64.substring(0, 50));
     return NextResponse.json(
       { error: "Failed to enhance image" },
       { status: 500 },
