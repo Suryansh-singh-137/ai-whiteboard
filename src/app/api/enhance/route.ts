@@ -13,57 +13,47 @@ export async function POST(req: NextRequest) {
 
     const base64Image = image.replace(/^data:image\/png;base64,/, "");
 
-    // Step 1: Send drawing + prompt to Gemini vision via OpenRouter
-    // Goal: get a detailed image generation prompt back
-    const geminiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
+    // Step 1: Send drawing + prompt to HuggingFace vision model
+    // Model: Salesforce BLIP2 — free, stable, accepts image + question
+    const hfResponse = await fetch(
+      "https://api-inference.huggingface.co/models/Salesforce/blip2-opt-2.7b",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${process.env.HF_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemma-4-31b-it:free",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `The user drew this sketch and wants: "${prompt}". 
-    Based on the drawing and their intent, write a single detailed 
-    image generation prompt (max 200 words). Only return the prompt, nothing else.`,
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:image/png;base64,${base64Image}`,
-                  },
-                },
-              ],
-            },
-          ],
+          inputs: {
+            image: base64Image,
+            question: `The user wants: "${prompt}". Describe this sketch as a detailed image generation prompt in under 200 words.`,
+          },
         }),
       },
     );
 
-    const geminiData = await geminiResponse.json();
-    console.log("OpenRouter response:", geminiData);
+    console.log("HF status:", hfResponse.status);
 
-    if (!geminiResponse.ok) {
-      console.error("OpenRouter error:", geminiData);
-      return NextResponse.json({ error: geminiData }, { status: 500 });
+    // If model is loading (cold start), HF returns 503
+    if (hfResponse.status === 503) {
+      return NextResponse.json(
+        { error: "Model is loading, please try again in 20 seconds" },
+        { status: 503 },
+      );
     }
 
-    const imageGenPrompt = geminiData.choices[0].message.content ?? prompt;
-    console.log("Generated image prompt:", imageGenPrompt);
+    const hfData = await hfResponse.json();
+    console.log("HF response:", hfData);
 
-    // Step 2: Send that prompt to Pollinations (free, no key needed)
+    // BLIP2 returns: [{ generated_text: "..." }]
+    const imageGenPrompt =
+      hfData?.[0]?.generated_text ?? hfData?.answer ?? prompt;
+    console.log("Image gen prompt:", imageGenPrompt);
+
+    // Step 2: Send prompt to Pollinations (free, no key needed)
     const encodedPrompt = encodeURIComponent(imageGenPrompt);
     const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
 
-    // Fetch image and convert to base64
     const imageResponse = await fetch(pollinationsUrl);
     const imageBuffer = await imageResponse.arrayBuffer();
     const imageBase64 = Buffer.from(imageBuffer).toString("base64");
