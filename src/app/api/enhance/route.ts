@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, prompt } = await req.json();
+    const { prompt } = await req.json();
 
-    if (!image || !prompt) {
+    if (!prompt) {
       return NextResponse.json(
-        { error: "Image and prompt are required" },
+        { error: "Prompt is required" },
         { status: 400 },
       );
     }
@@ -15,19 +15,14 @@ export async function POST(req: NextRequest) {
     const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&width=1024&height=1024&nologo=true`;
 
     const imageResponse = await fetch(pollinationsUrl, {
-      headers: {
-        Authorization: `Bearer ${process.env.POLLINATIONS_API_KEY}`,
-      },
+      headers: { Authorization: `Bearer ${process.env.POLLINATIONS_API_KEY}` },
     });
 
     if (!imageResponse.ok) {
-      console.error(
-        "Pollinations error:",
-        imageResponse.status,
-        await imageResponse.text(),
-      );
+      const errText = await imageResponse.text();
+      console.error("Pollinations error:", imageResponse.status, errText);
       return NextResponse.json(
-        { error: `Pollinations error: ${imageResponse.status}` },
+        { error: "Image generation failed" },
         { status: 500 },
       );
     }

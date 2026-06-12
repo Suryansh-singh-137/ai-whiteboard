@@ -15,17 +15,70 @@ export async function enhanceImage() {
 
   try {
     useBoardStore.getState().setStatus("loading");
+
     const canvasImage = await exportCanvasToBase64(editor);
     if (!canvasImage) {
       alert("Draw something on the canvas first.");
       useBoardStore.getState().setStatus("idle");
       return;
     }
+
+    // Convert base64 → Blob for Puter
+    const base64Data = canvasImage.split(",")[1];
+    const byteCharacters = atob(base64Data);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    const imageBlob = new Blob([byteArray], { type: "image/png" });
+
+    // Step 1: Puter vision
+    let imageGenPrompt = prompt;
+    const puter = (window as any).puter;
+
+    if (puter) {
+      try {
+        console.log("Sending to Puter vision...");
+        const visionResponse = await puter.ai.chat(
+          `You are an AI assistant for a creative whiteboard tool called Genora.
+           A user sketched something on a digital whiteboard and wants it enhanced into a beautiful image.
+           
+           Their sketch intent: "${prompt}"
+           
+           Look at the sketch carefully. Based on the sketch shapes and the user's intent,
+           write a single detailed image generation prompt (max 150 words).
+           
+           Rules:
+           - Describe a photorealistic or beautifully illustrated version of what they sketched
+           - Mention specific colors, lighting, style (realistic, illustrated, cinematic etc.)
+           - White or transparent background preferred unless the scene requires otherwise
+           - Do NOT mention the sketch itself — describe the final image directly
+           - Only return the prompt text, nothing else, no explanation`,
+          imageBlob,
+          { model: "gpt-5.4-nano" },
+        );
+
+        const text =
+          visionResponse?.message?.content?.[0]?.text ??
+          visionResponse?.message?.content ??
+          null;
+
+        if (text && typeof text === "string") {
+          imageGenPrompt = text.trim();
+          console.log("Vision prompt:", imageGenPrompt);
+        }
+      } catch (visionError) {
+        console.warn("Vision failed, using text prompt only:", visionError);
+      }
+    }
+
+    // Step 2: Generate image
     const res = await fetch("/api/enhance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: canvasImage, prompt }),
+      body: JSON.stringify({ prompt: imageGenPrompt }),
     });
+
     const data = await res.json();
     useBoardStore.getState().setAIImage(data.enhancedImage);
     useBoardStore.getState().setStatus("preview");
