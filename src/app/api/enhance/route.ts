@@ -11,16 +11,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Skip vision for now — send user prompt directly to Pollinations
     const encodedPrompt = encodeURIComponent(prompt);
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&width=1024&height=1024&nologo=true`;
 
-    const imageResponse = await fetch(pollinationsUrl);
-    
+    const imageResponse = await fetch(pollinationsUrl, {
+      headers: {
+        Authorization: `Bearer ${process.env.POLLINATIONS_API_KEY}`,
+      },
+    });
+
     if (!imageResponse.ok) {
-      console.error("Pollinations API error:", imageResponse.status, imageResponse.statusText);
+      console.error(
+        "Pollinations error:",
+        imageResponse.status,
+        await imageResponse.text(),
+      );
       return NextResponse.json(
-        { error: `Pollinations API error: ${imageResponse.statusText}` },
+        { error: `Pollinations error: ${imageResponse.status}` },
         { status: 500 },
       );
     }
@@ -32,7 +39,7 @@ export async function POST(req: NextRequest) {
       enhancedImage: `data:image/png;base64,${imageBase64}`,
     });
   } catch (error) {
-    console.error("Error enhancing image:", error);
+    console.error("Error:", error);
     return NextResponse.json(
       { error: "Failed to enhance image" },
       { status: 500 },

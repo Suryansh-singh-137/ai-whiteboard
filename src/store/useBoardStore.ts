@@ -8,14 +8,14 @@ interface BoardState {
   canvasImage: string | null;
   aiImage: string | null;
   status: BoardStatus;
-  editor  :Editor|null;
+  editor: Editor | null;
 
   setPrompt: (prompt: string) => void;
   setCanvasImage: (image: string | null) => void;
   setAIImage: (image: string | null) => void;
   setStatus: (status: BoardStatus) => void;
   reset: () => void;
-  setEditor:(editor:Editor)=>void ;
+  setEditor: (editor: Editor) => void;
 }
 
 export const useBoardStore = create<BoardState>((set) => ({

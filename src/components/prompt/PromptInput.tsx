@@ -3,7 +3,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useBoardStore } from "@/store/useBoardStore";
 import { exportCanvasToBase64 } from "@/lib/exportCanvas";
-import { log } from "console";
+
 export async function enhanceImage() {
   console.log("Enhance button clicked");
   const { prompt, editor } = useBoardStore.getState();
@@ -21,12 +21,11 @@ export async function enhanceImage() {
   try {
     useBoardStore.getState().setStatus("loading");
 
-    // Export canvas to base64 RIGHT HERE before calling API
     const canvasImage = await exportCanvasToBase64(editor);
     console.log("Canvas exported:", canvasImage?.substring(0, 50));
 
     if (!canvasImage) {
-      alert("Failed to export canvas. Draw something first.");
+      alert("Draw something on the canvas first.");
       useBoardStore.getState().setStatus("idle");
       return;
     }
@@ -48,11 +47,13 @@ export async function enhanceImage() {
     useBoardStore.getState().setStatus("idle");
   }
 }
+
 export default function PromptInput() {
   const prompt = useBoardStore((s) => s.prompt);
   const setPrompt = useBoardStore((s) => s.setPrompt);
   const status = useBoardStore((s) => s.status);
   const isDisabled = status === "exporting" || status === "loading";
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background p-4">
       <div className="mx-auto flex max-w-3xl gap-2">
